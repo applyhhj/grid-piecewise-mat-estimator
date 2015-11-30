@@ -2,23 +2,25 @@ clc;clear;close all;
 
 casedata='case300';
 
-[baseMVA, bus, gen, branch] = loadcase(casedata);
-
-% [i2e, bus, gen, branch]  = ext2int(bus, gen, branch);
-% 
-% [Ybusfull,Yffull,Ytfull]=makeYbus(baseMVA,bus,branch);
+[baseMVA, bus, gen, branch, success,i2e] = solvePowerFlow(casedata);
 
 [zone_bus_map,zone_gen_map,zone_branch_map, ...
     zone_branch_connf_map,zone_branch_connt_map,...
     connbrf_bus_out_map,connbrt_bus_out_map]=piecewise(bus,gen,branch);
 
+extiV=[];
+
 for k=1:size(keys(zone_bus_map),2)
     
     zones=keys(zone_bus_map);
     
-    runestimate(baseMVA,zone_bus_map(zones(k)),zone_gen_map(zones(k)),...
-        zone_branch_map(zones(k)),zone_branch_connf_map(zones(k)),...
-        zone_branch_connt_map(zones(k)),connbrf_bus_out_map(zones(k)),...
-        connbrt_bus_out_map(zones(k)));
+    zone=cell2mat(zones(k));
     
+    [extiVtmp, converged]=runestimate(baseMVA,zone_bus_map(zone),...
+        zone_gen_map(zone),zone_branch_map(zone),...
+        zone_branch_connf_map(zone),zone_branch_connt_map(zone),...
+        connbrf_bus_out_map(zone),connbrt_bus_out_map(zone));
+    
+    extiV=[extiV;extiVtmp];
+    extiV(:,1)=i2e(extiV(:,1));
 end

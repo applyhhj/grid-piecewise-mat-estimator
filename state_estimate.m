@@ -1,4 +1,4 @@
-function [V, converged, i] = state_estimate(branch, Ybus, Yf, Yt, Sbus, V0, ref, pv, pq, mpopt)
+function [V, converged, i] = state_estimate(branch, Ybus, Yf, Yt, Sbus, V0, vv, pv, pq, mpopt)
 %STATE_EST  Solves a state estimation problem.
 %   [V, CONVERGED, I] = STATE_EST(BRANCH, YBUS, YF, YT, SBUS, ...
 %                                   V0, REF, PV, PQ, MPOPT)
@@ -133,14 +133,15 @@ err = normrnd( zeros(size(sigma)), sigma );
     %%%%%% NOTE: This is specific to the 30-bus system   %%%%%%
     %%%%%%       where bus 1 is the reference bus which  %%%%%%
     %%%%%%       is connected to branches 1 and 2        %%%%%%
-    vv=[(3:nbr), ...                    %% all but 1st two Pf
-        (nbr+1:2*nbr), ...              %% all Pt
-        (2*nbr+2:2*nbr+nb), ...         %% all but 1st Pbus
-        (2*nbr+nb+2:2*nbr+2*nb), ...    %% all but 1st Va
-        (2*nbr+2*nb+3:3*nbr+2*nb), ...  %% all but 1st two Qf
-        (3*nbr+2*nb+1:4*nbr+2*nb), ...  %% all Qt
-        (4*nbr+2*nb+2:4*nbr+3*nb), ...  %% all but 1st Qbus
-        (4*nbr+3*nb+2:4*nbr+4*nb)]';    %% all but 1st Vm
+%     vv=[(3:nbr), ...                    %% all but 1st two Pf
+%         (nbr+1:2*nbr), ...              %% all Pt
+%         (2*nbr+2:2*nbr+nb), ...         %% all but 1st Pbus
+%         (2*nbr+nb+2:2*nbr+2*nb), ...    %% all but 1st Va
+%         (2*nbr+2*nb+3:3*nbr+2*nb), ...  %% all but 1st two Qf
+%         (3*nbr+2*nb+1:4*nbr+2*nb), ...  %% all Qt
+%         (4*nbr+2*nb+2:4*nbr+3*nb), ...  %% all but 1st Qbus
+%         (4*nbr+3*nb+2:4*nbr+4*nb)]';    %% all but 1st Vm
+
     %% index vector for state variables to be updated
     ww = [ nref; nb+nref ];
     
