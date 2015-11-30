@@ -1,4 +1,4 @@
-function [c,idxa]=intersectrep(a,b)
+function [c,idxa]=intersectRep(a,b)
 if isempty(a) || isempty(b)
    c=[];
    idxa=[];

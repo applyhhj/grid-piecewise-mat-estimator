@@ -11,9 +11,9 @@ nbr=size(branch,1);
 busids=(1:nb)';
 
 %% valid pf
-[~,sfids]=diffrep(branch(:,F_BUS),ref);
-[~,stids]=diffrep(branch(:,T_BUS),ref);
-[~,sbVids]=diffrep(busids,ref);
+[~,sfids]=diffRep(branch(:,F_BUS),ref);
+[~,stids]=diffRep(branch(:,T_BUS),ref);
+[~,sbVids]=diffRep(busids,ref);
 
 vv=[sfids;...                   %% pf
     stids+nbr;...               %% pt

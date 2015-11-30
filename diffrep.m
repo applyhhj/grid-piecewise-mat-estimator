@@ -1,4 +1,4 @@
-function [c,ia]=diffrep(a,b)
+function [c,ia]=diffRep(a,b)
 
 if isempty(b)
     ia=(1:max(size(a,1)))';

@@ -39,32 +39,32 @@ for k=1:zn
     buses(k)={zonebuses};
     
     %     piecewise gens
-    [~,igen]=intersectrep(gen(:,GEN_BUS),zonebuses(:,BUS_I));
+    [~,igen]=intersectRep(gen(:,GEN_BUS),zonebuses(:,BUS_I));
     
     zonegens=gen(igen,:);
     
     gens(k)={zonegens};
     
     %     piecewise branches
-    [~,ibrf]=intersectrep(branch(:,F_BUS),zonebuses(:,BUS_I));
+    [~,ibrf]=intersectRep(branch(:,F_BUS),zonebuses(:,BUS_I));
     
-    [~,ibrt]=intersectrep(branch(:,T_BUS),zonebuses(:,BUS_I));
+    [~,ibrt]=intersectRep(branch(:,T_BUS),zonebuses(:,BUS_I));
     
-    ibrzone=intersectrep(ibrf,ibrt);
+    ibrzone=intersectRep(ibrf,ibrt);
         
     branches(k)={branch(ibrzone,:)};
     
     %   connection branches
-    connbrf(k)={branch(diffrep(ibrf,ibrzone),:)};
+    connbrf(k)={branch(diffRep(ibrf,ibrzone),:)};
     
-    connbrt(k)={branch(diffrep(ibrt,ibrzone),:)};
+    connbrt(k)={branch(diffRep(ibrt,ibrzone),:)};
 
     %   buses of connection branches that are out of the zone
-    [~,ibus]=intersectrep(bus(:,BUS_I),branch(diffrep(ibrf,ibrzone),T_BUS));
+    [~,ibus]=intersectRep(bus(:,BUS_I),branch(diffRep(ibrf,ibrzone),T_BUS));
     
     connbrf_bus_out(k)={bus(ibus,:)};
     
-    [~,ibus]=intersectrep(bus(:,BUS_I),branch(diffrep(ibrt,ibrzone),F_BUS));
+    [~,ibus]=intersectRep(bus(:,BUS_I),branch(diffRep(ibrt,ibrzone),F_BUS));
     
     connbrt_bus_out(k)={bus(ibus,:)};
     

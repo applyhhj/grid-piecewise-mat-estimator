@@ -1,4 +1,4 @@
-function [V, converged, i] = state_estimate(branch, Ybus, Yf, Yt, Sbus, V0, vv, pv, pq, mpopt)
+function [V, converged, i] = stateEstimate(branch, Ybus, Yf, Yt, Sbus, V0, vv, pv, pq, mpopt)
 %STATE_EST  Solves a state estimation problem.
 %   [V, CONVERGED, I] = STATE_EST(BRANCH, YBUS, YF, YT, SBUS, ...
 %                                   V0, REF, PV, PQ, MPOPT)

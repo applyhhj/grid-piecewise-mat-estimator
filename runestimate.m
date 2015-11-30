@@ -1,4 +1,4 @@
-function [extiV, converged]=runestimate(baseMVA,bus,gen,branch,...
+function [extiV, converged]=runEstimate(baseMVA,bus,gen,branch,...
     brconnf,brconnt,busbrconnfout,busbrconntout)
 
 %% define named indices into bus, gen, branch matrices
@@ -75,6 +75,6 @@ Ibus=Ybuseq*V;
 Sbuslf = V .* conj(Ibus);
 Vlf=V;
 vv=validMeasurement(ref,bus,branch);
-[V, converged, i] = state_estimate(branch, Ybuseq, Yfd, Ytd, Sbuslf, Vlf, vv, pv, pq);
+[V, converged, i] = stateEstimate(branch, Ybuseq, Yfd, Ytd, Sbuslf, Vlf, vv, pv, pq);
 extiV=sortrows([ii2e,V],1);
 end
