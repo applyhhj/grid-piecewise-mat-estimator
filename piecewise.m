@@ -1,5 +1,6 @@
 function [zone_bus_map,zone_gen_map,zone_branch_map, ...
-    zone_branch_conn_map]=piecewise(bus,gen,branch)
+    zone_branch_connf_map,zone_branch_connt_map,...
+    connbrf_bus_out_map,connbrt_bus_out_map]=piecewise(bus,gen,branch)
 
 [PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM, ...
     VA, BASE_KV, ZONE, VMAX, VMIN, LAM_P, LAM_Q, MU_VMAX, MU_VMIN] = idx_bus;
@@ -22,7 +23,13 @@ gens=cell(1,zn);
 
 branches=cell(1,zn);
 
-connbr=cell(2,zn);
+connbrf=cell(1,zn);
+
+connbrt=cell(1,zn);
+
+connbrf_bus_out=cell(1,zn);
+
+connbrt_bus_out=cell(1,zn);
 
 for k=1:zn
     
@@ -45,9 +52,17 @@ for k=1:zn
     
     ibrzone=intersect(ibrf,ibrt);
         
-    connbr(:,k)={setdiff(ibrf,ibrzone),setdiff(ibrt,ibrzone)};
-    
     branches(k)={branch(ibrzone,:)};
+    
+    %   connection branches
+    connbrf(k)={branch(setdiff(ibrf,ibrzone),:)};
+    
+    connbrt(k)={branch(setdiff(ibrt,ibrzone),:)};
+
+    %   buses of connection branches that are out of the zone
+    connbrf_bus_out(k)={bus(branch(setdiff(ibrf,ibrzone),T_BUS),:)};
+    
+    connbrt_bus_out(k)={bus(branch(setdiff(ibrf,ibrzone),F_BUS),:)};
     
 end
 
@@ -57,6 +72,12 @@ zone_gen_map=containers.Map(zones,gens);
 
 zone_branch_map=containers.Map(zones,branches);
 
-zone_branch_conn_map=containers.Map(zones,connbr);
+zone_branch_connf_map=containers.Map(zones,connbrf);
+
+zone_branch_connt_map=containers.Map(zones,connbrt);
+
+connbrf_bus_out_map=containers.Map(zones,connbrf_bus_out);
+
+connbrt_bus_out_map=containers.Map(zones,connbrt_bus_out);
 
 end
