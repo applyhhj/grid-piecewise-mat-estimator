@@ -40,14 +40,22 @@ busbrconnfout=buses(bn+1:bn+bncfo,:);
 busbrconntout=buses(bn+bncfo+1:end,:);
 
 %% get bus index lists of each type of bus
-[ref, pv, pq] = bustypes(zonebus, zonegen);
+[ref, pv, pq] = getBusType(zonebus, zonegen);
 
 %% generator info
 on = find(zonegen(:, GEN_STATUS) > 0);      %% which generators are on?
 gbus = zonegen(on, GEN_BUS);                %% what buses are they at?
 
 %% build admittance matrices
-[Yd, Yfd, Ytd] = makeYbus(baseMVA, bus, branch);
+[Yd, Yfd, Ytd] = getYMatrix(baseMVA, bus, branch);
+[~, ~, ~,Yffconn,~] = getYMatrix(baseMVA, bus, brconnf);
+[~, ~, ~,~,Yttconn] = getYMatrix(baseMVA, bus, brconnt);
+YL=[Yffconn;Yttconn];
+connbus=[brconnf(:,F_BUS);brconnt(:,T_BUS)];
+Yeq=sparse(connbus,connbus,2*YL,bn,bn);
+Yb=Yd+Yeq;
+N=sparse(connbus,connbus,1,bn,bn);
+Ybuseq=Yb-N*YL*N';
 
 %% compute complex bus power injections (generation - load)
 % Sbus = makeSbus(baseMVA, bus, gen);
@@ -60,7 +68,10 @@ Qtlf=branch(:,QT);
 Vm=bus(:,VM);
 Va=bus(:,VA);
 V=Vm.*cos(Va)+Vm.*sin(Va).*1j;
-Sbuslf = V .* conj(Ybus * V);
+Ibus=Ybuseq*V;
+Sbuslf = V .* conj(Ibus);
 Vlf=V;
+
+[V, converged, i] = state_estimate(branch, Ybuseq, Yfd, Ytd, Sbuslf, Vlf, ref, pv, pq, mpopt);
 
 end
