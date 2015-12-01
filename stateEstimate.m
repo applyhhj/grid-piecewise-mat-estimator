@@ -90,49 +90,49 @@ err = normrnd( zeros(size(sigma)), sigma );
 % err(10) = 900 * W(10,10);     %% create a bad measurement
 
 
-    % for test
+% for test
 %     z = z + err;
-    
-    %% use flat start for intial estimate
-    V = ones(nb,1);
-    
-    %% compute estimated measurement
-    Sfe = V(f) .* conj(Yf * V);
-    Ste = V(t) .* conj(Yt * V);
-    Sbuse = V .* conj(Ybus * V);
-    z_est = [
-        real(Sfe);
-        real(Ste);
-        real(Sbuse);
-        angle(V);
-        imag(Sfe);
-        imag(Ste);
-        imag(Sbuse);
-        abs(V);
-        ];
-    
-    %% measurement residual
-    delz = z - z_est;
-    normF = delz' * WInv * delz;
-    chusqu = err' * WInv * err;
-    
-    %% check tolerance
+
+%% use flat start for intial estimate
+V = ones(nb,1);
+
+%% compute estimated measurement
+Sfe = V(f) .* conj(Yf * V);
+Ste = V(t) .* conj(Yt * V);
+Sbuse = V .* conj(Ybus * V);
+z_est = [
+    real(Sfe);
+    real(Ste);
+    real(Sbuse);
+    angle(V);
+    imag(Sfe);
+    imag(Ste);
+    imag(Sbuse);
+    abs(V);
+    ];
+
+%% measurement residual
+delz = z - z_est;
+normF = delz' * WInv * delz;
+chusqu = err' * WInv * err;
+
+%% check tolerance
+if mpopt.verbose > 1
+    fprintf('\n it     norm( F )       step size');
+    fprintf('\n----  --------------  --------------');
+    fprintf('\n%3d    %10.3e      %10.3e', i, normF, 0);
+end
+if normF < tol
+    converged = 1;
     if mpopt.verbose > 1
-        fprintf('\n it     norm( F )       step size');
-        fprintf('\n----  --------------  --------------');
-        fprintf('\n%3d    %10.3e      %10.3e', i, normF, 0);
+        fprintf('\nConverged!\n');
     end
-    if normF < tol
-        converged = 1;
-        if mpopt.verbose > 1
-            fprintf('\nConverged!\n');
-        end
-    end
-    
-    %% index vector for measurements that are to be used
-    %%%%%% NOTE: This is specific to the 30-bus system   %%%%%%
-    %%%%%%       where bus 1 is the reference bus which  %%%%%%
-    %%%%%%       is connected to branches 1 and 2        %%%%%%
+end
+
+%% index vector for measurements that are to be used
+%%%%%% NOTE: This is specific to the 30-bus system   %%%%%%
+%%%%%%       where bus 1 is the reference bus which  %%%%%%
+%%%%%%       is connected to branches 1 and 2        %%%%%%
 %     vv=[(3:nbr), ...                    %% all but 1st two Pf
 %         (nbr+1:2*nbr), ...              %% all Pt
 %         (2*nbr+2:2*nbr+nb), ...         %% all but 1st Pbus
@@ -142,127 +142,130 @@ err = normrnd( zeros(size(sigma)), sigma );
 %         (4*nbr+2*nb+2:4*nbr+3*nb), ...  %% all but 1st Qbus
 %         (4*nbr+3*nb+2:4*nbr+4*nb)]';    %% all but 1st Vm
 
-    %% index vector for state variables to be updated
-    ww = [ nref; nb+nref ];
+%% index vector for state variables to be updated
+ww = [ nref; nb+nref ];
+
+%% bad data loop
+one_at_a_time = 1; max_it_bad_data = 50;
+% one_at_a_time = 0; max_it_bad_data = 5;
+ibd = 1;
+while (~converged && ibd <= max_it_bad_data)
+    nm = length(vv);
+    baddata = 0;
     
-    %% bad data loop
-    one_at_a_time = 1; max_it_bad_data = 50;
-    % one_at_a_time = 0; max_it_bad_data = 5;
-    ibd = 1;
-    while (~converged && ibd <= max_it_bad_data)
-        nm = length(vv);
-        baddata = 0;
+    %% find reduced Hessian, covariance matrix, measurements
+    HH = H(vv,ww);
+    WWInv = WInv(vv,vv);
+    ddelz = delz(vv);
+    VVa = angle(V(nref));
+    VVm = abs(V(nref));
+    
+    %   B0 = WWInv * (err(vv) .^ 2);
+    %   B00 = WWInv * (ddelz .^ 2);
+    %   [maxB0,i_maxB0] = max(B0)
+    %   [maxB00,i_maxB00] = max(B00)
+    
+    %%-----  do Newton iterations  -----
+    max_it = 100;
+    i = 0;
+    while (~converged && i < max_it)
+        %% update iteration counter
+        i = i + 1;
         
-        %% find reduced Hessian, covariance matrix, measurements
-        HH = H(vv,ww);
-        WWInv = WInv(vv,vv);
+        %% compute update step
+        F = HH' * WWInv * ddelz;
+        J = HH' * WWInv * HH;
+        dx = (J \ F);
+        
+        %% update voltage
+%         VVa = VVa + dx(1:nb-1);
+%         VVm = VVm + dx(nb:2*nb-2);
+        nstat=size(ww,1)/2;
+        VVa = VVa + dx(1:nstat);
+        VVm = VVm + dx(nstat+1:end);
+        V(nref) = VVm .* exp(1j * VVa);
+        
+        %% compute estimated measurement
+        Sfe = V(f) .* conj(Yf * V);
+        Ste = V(t) .* conj(Yt * V);
+        Sbuse = V .* conj(Ybus * V);
+        z_est = [
+            real(Sfe);
+            real(Ste);
+            real(Sbuse);
+            angle(V);
+            imag(Sfe);
+            imag(Ste);
+            imag(Sbuse);
+            abs(V);
+            ];
+        
+        %% measurement residual
+        delz = z - z_est;
         ddelz = delz(vv);
-        VVa = angle(V(nref));
-        VVm = abs(V(nref));
+        normF = ddelz' * WWInv * ddelz;
         
-        %   B0 = WWInv * (err(vv) .^ 2);
-        %   B00 = WWInv * (ddelz .^ 2);
-        %   [maxB0,i_maxB0] = max(B0)
-        %   [maxB00,i_maxB00] = max(B00)
-        
-        %%-----  do Newton iterations  -----
-        max_it = 100;
-        i = 0;
-        while (~converged && i < max_it)
-            %% update iteration counter
-            i = i + 1;
-            
-            %% compute update step
-            F = HH' * WWInv * ddelz;
-            J = HH' * WWInv * HH;
-            dx = (J \ F);
-            
-            %% update voltage
-            VVa = VVa + dx(1:nb-1);
-            VVm = VVm + dx(nb:2*nb-2);
-            V(nref) = VVm .* exp(1j * VVa);
-            
-            %% compute estimated measurement
-            Sfe = V(f) .* conj(Yf * V);
-            Ste = V(t) .* conj(Yt * V);
-            Sbuse = V .* conj(Ybus * V);
-            z_est = [
-                real(Sfe);
-                real(Ste);
-                real(Sbuse);
-                angle(V);
-                imag(Sfe);
-                imag(Ste);
-                imag(Sbuse);
-                abs(V);
-                ];
-            
-            %% measurement residual
-            delz = z - z_est;
-            ddelz = delz(vv);
-            normF = ddelz' * WWInv * ddelz;
-            
-            %% check for convergence
-            step = dx' * dx;
-            if mpopt.verbose > 1
-                fprintf('\n%3d    %10.3e      %10.3e', i, normF, step);
-            end
-            if (step < tol)
-                converged = 1;
-                if mpopt.verbose
-                    fprintf('\nState estimator converged in %d iterations.\n', i);
-                end
-            end
+        %% check for convergence
+        step = dx' * dx;
+        if mpopt.verbose > 1
+            fprintf('\n%3d    %10.3e      %10.3e', i, normF, step);
         end
-        if mpopt.verbose
-            if ~converged
-                fprintf('\nState estimator did not converge in %d iterations.\n', i);
-            end
-        end
-        
-        %%-----  Chi squared test for bad data and bad data rejection  -----
-        B = zeros(nm,1);
-        bad_threshold = 6.25;       %% the threshold for bad data = sigma squared
-        RR = inv(WWInv) - 0.95 * HH * inv(HH' * WWInv * HH) * HH';
-        %   RI = inv( inv(WWInv) - HH * inv(HH' * WWInv * HH) * HH' );
-        %   find(eig(full(inv(WWInv) - HH * inv(HH' * WWInv * HH) * HH')) < 0)
-        %   chi = ddelz' * RR * ddelz
-        rr = diag(RR);
-        
-        B = ddelz .^ 2 ./ rr;
-        [maxB,i_maxB] = max(B);
-        if one_at_a_time
-            if maxB >= bad_threshold
-                rejected = i_maxB;
-            else
-                rejected = [];
-            end
-        else
-            rejected = find( B >= bad_threshold );
-        end
-        if length(rejected)
-            baddata = 1;
-            converged = 0;
-            if mpopt.verbose
-                fprintf('\nRejecting %d measurement(s) as bad data:\n', length(rejected));
-                fprintf('\tindex\t      B\n');
-                fprintf('\t-----\t-------------\n');
-                fprintf('\t%4d\t%10.2f\n', [ vv(rejected), B(rejected) ]' );
-            end
-            
-            %% update measurement index vector
-            k = find( B < bad_threshold );
-            vv = vv(k);
-            nm = length(vv);
-        end
-        
-        if (baddata == 0)
+        if (step < tol)
             converged = 1;
             if mpopt.verbose
-                fprintf('\nNo remaining bad data, after discarding data %d time(s).\n', ibd-1);
-                fprintf('Largest value of B = %.2f\n', maxB);
+                fprintf('\nState estimator converged in %d iterations.\n', i);
             end
         end
-        ibd = ibd + 1;
     end
+    if mpopt.verbose
+        if ~converged
+            fprintf('\nState estimator did not converge in %d iterations.\n', i);
+        end
+    end
+    
+    %%-----  Chi squared test for bad data and bad data rejection  -----
+    B = zeros(nm,1);
+    bad_threshold = 6.25;       %% the threshold for bad data = sigma squared
+    RR = inv(WWInv) - 0.95 * HH * inv(HH' * WWInv * HH) * HH';
+    %   RI = inv( inv(WWInv) - HH * inv(HH' * WWInv * HH) * HH' );
+    %   find(eig(full(inv(WWInv) - HH * inv(HH' * WWInv * HH) * HH')) < 0)
+    %   chi = ddelz' * RR * ddelz
+    rr = diag(RR);
+    
+    B = ddelz .^ 2 ./ rr;
+    [maxB,i_maxB] = max(B);
+    if one_at_a_time
+        if maxB >= bad_threshold
+            rejected = i_maxB;
+        else
+            rejected = [];
+        end
+    else
+        rejected = find( B >= bad_threshold );
+    end
+    if length(rejected)
+        baddata = 1;
+        converged = 0;
+        if mpopt.verbose
+            fprintf('\nRejecting %d measurement(s) as bad data:\n', length(rejected));
+            fprintf('\tindex\t      B\n');
+            fprintf('\t-----\t-------------\n');
+            fprintf('\t%4d\t%10.2f\n', [ vv(rejected), B(rejected) ]' );
+        end
+        
+        %% update measurement index vector
+        k = find( B < bad_threshold );
+        vv = vv(k);
+        nm = length(vv);
+    end
+    
+    if (baddata == 0)
+        converged = 1;
+        if mpopt.verbose
+            fprintf('\nNo remaining bad data, after discarding data %d time(s).\n', ibd-1);
+            fprintf('Largest value of B = %.2f\n', maxB);
+        end
+    end
+    ibd = ibd + 1;
+end
 

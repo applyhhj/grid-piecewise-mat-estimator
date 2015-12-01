@@ -15,6 +15,15 @@ function [zone_bus_map,zone_gen_map,zone_branch_map, ...
 
 zones=sort(unique(bus(:,ZONE)));
 
+areas=sort(unique(bus(:,BUS_AREA)));
+
+if size(zones,1)>size(areas,1)
+    idx=ZONE;
+else
+    idx=BUS_AREA;
+    zones=areas;
+end
+
 zn=size(zones,1);
 
 buses=cell(1,zn);
@@ -34,7 +43,7 @@ connbrt_bus_out=cell(1,zn);
 for k=1:zn
     
     %     piecewise buses
-    zonebuses=bus(bus(:,ZONE)==zones(k),:);
+    zonebuses=bus(bus(:,idx)==zones(k),:);
     
     buses(k)={zonebuses};
     
