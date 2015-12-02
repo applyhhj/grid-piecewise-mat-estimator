@@ -1,8 +1,8 @@
-function [Ybus, Yf, Yt, Yff,Ytt] = getYMatrix(baseMVA, bus, branch)
+function [Ybus, Yf, Yt, Yff,Ytt,Yft,Ytf] = getYMatrix(baseMVA, bus, branch)
 %MAKEYBUS   Builds the bus admittance matrix and branch admittance matrices.
 %   [YBUS, YF, YT] = MAKEYBUS(MPC)
 %   [YBUS, YF, YT] = MAKEYBUS(BASEMVA, BUS, BRANCH)
-%   
+%
 %   Returns the full bus admittance matrix (i.e. for all buses) and the
 %   matrices YF and YT which, when multiplied by a complex voltage vector,
 %   yield the vector currents injected into each line from the "from" and
@@ -31,7 +31,9 @@ if nargin < 3
 end
 
 %% constants
-nb = size(bus, 1);          %% number of buses
+if ~isempty(bus)
+    nb = size(bus, 1);          %% number of buses
+end
 nl = size(branch, 1);       %% number of lines
 
 %% define named indices into bus, branch matrices
@@ -42,8 +44,10 @@ nl = size(branch, 1);       %% number of lines
     ANGMIN, ANGMAX, MU_ANGMIN, MU_ANGMAX] = idx_brch;
 
 %% check that bus numbers are equal to indices to bus (one set of bus numbers)
-if any(bus(:, BUS_I) ~= (1:nb)')
-    error('buses must appear in order by bus number')
+if ~isempty(bus)
+    if any(bus(:, BUS_I) ~= (1:nb)')
+        error('buses must appear in order by bus number')
+    end
 end
 
 %% for each branch, compute the elements of the branch admittance matrix where
@@ -63,6 +67,14 @@ Ytt = Ys + 1j*Bc/2;
 Yff = Ytt ./ (tap .* conj(tap));
 Yft = - Ys ./ conj(tap);
 Ytf = - Ys ./ tap;
+
+%% we only need Yff and Ytt
+if isempty(bus)
+    Ybus=[];
+    Yf=[];
+    Yt=[];
+    return;
+end
 
 %% compute shunt admittance
 %% if Psh is the real power consumed by the shunt at V = 1.0 p.u.
@@ -87,4 +99,4 @@ Yt = sparse(i, [f; t], [Ytf; Ytt], nl, nb);
 
 %% build Ybus
 Ybus = Cf' * Yf + Ct' * Yt + ...                %% branch admittances
-        sparse(1:nb, 1:nb, Ysh, nb, nb);        %% shunt admittance
+    sparse(1:nb, 1:nb, Ysh, nb, nb);        %% shunt admittance

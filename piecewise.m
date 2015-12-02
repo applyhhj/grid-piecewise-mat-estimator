@@ -69,6 +69,7 @@ for k=1:zn
     connbrt(k)={branch(diffRep(ibrt,ibrzone),:)};
 
     %   buses of connection branches that are out of the zone
+    %% ibus may have duplicated elements
     [~,ibus]=intersectRep(bus(:,BUS_I),branch(diffRep(ibrf,ibrzone),T_BUS));
     
     connbrf_bus_out(k)={bus(ibus,:)};

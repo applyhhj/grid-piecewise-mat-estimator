@@ -1,5 +1,5 @@
-function [extiV, converged]=runEstimate(baseMVA,bus,gen,branch,...
-    brconnf,brconnt,busbrconnfout,busbrconntout)
+function [bus, gen, branch,converged]=runEstimate(baseMVA,bus,gen,branch,...
+    brconnf,brconnt,busbrconnfout,busbrconntout,mpopt)
 
 %% define named indices into bus, gen, branch matrices
 [PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM, ...
@@ -21,24 +21,24 @@ function [extiV, converged]=runEstimate(baseMVA,bus,gen,branch,...
 % busbrconntout=cell2mat(zonebrtbusout);
 
 %% reoder bus number
-buses=[bus;busbrconnfout;busbrconntout];
+buses=[bus;unique([busbrconnfout;busbrconntout],'rows')];
 branches=[branch;brconnf;brconnt];
-[ii2e,buses,gen,branches]=ext2int(buses,gen,branches);
+[ii2efull,buses,gen,branches]=ext2int(buses,gen,branches);
 
 bn=size(bus,1);
-bncfo=size(busbrconnfout,1);
-bncto=size(busbrconntout,1);
+% bncfo=size(busbrconnfout,1);
+% bncto=size(busbrconntout,1);
 brn=size(branch,1);
 brncf=size(brconnf,1);
-brnct=size(brconnt,1);
+% brnct=size(brconnt,1);
 
 bus=buses(1:bn,:);
-ii2e=ii2e(1:bn,:);
+ii2e=ii2efull(1:bn,:);
 branch=branches(1:brn,:);
 brconnf=branches(brn+1:brn+brncf,:);
 brconnt=branches(brn+brncf+1:end,:);
-busbrconnfout=buses(bn+1:bn+bncfo,:);
-busbrconntout=buses(bn+bncfo+1:end,:);
+% busbrconnfout=buses(bn+1:bn+bncfo,:);
+% busbrconntout=buses(bn+bncfo+1:end,:);
 
 %% get bus index lists of each type of bus
 [ref, pv, pq] = getBusType(bus, gen);
@@ -49,16 +49,30 @@ gbus = gen(on, GEN_BUS);                %% what buses are they at?
 
 %% build admittance matrices
 [Yd, Yfd, Ytd] = getYMatrix(baseMVA, bus, branch);
-[~, ~, ~,Yffconn,~] = getYMatrix(baseMVA, buses, brconnf);
-[~, ~, ~,~,Yttconn] = getYMatrix(baseMVA, buses, brconnt);
+[~, ~, ~,Yffconn,~,~,Ytfconn] = getYMatrix(baseMVA, [], brconnf);
+[~, ~, ~,~,Yttconn,Yftconn,~] = getYMatrix(baseMVA, [], brconnt);
+nbrcf=size(brconnf,1);
+Cbrcfbus=sparse(1:nbrcf,brconnf(:,F_BUS),1,nbrcf,bn);
+nbrct=size(brconnt,1);
+Cbrctbus=sparse(1:nbrct,brconnt(:,T_BUS),1,nbrct,bn);
+Yeqf=Cbrcfbus'*Yffconn;
+Yeqt=Cbrctbus'*Yttconn;
+Yeq=sparse(diag(2*(Yeqf+Yeqt)));
+Yb=Yd+Yeq;
+
 YL=[Yffconn;Yttconn];
 nYl=size(YL,1);
 connbus=[brconnf(:,F_BUS);brconnt(:,T_BUS)];
-Yeq=sparse(connbus,connbus,2*YL,bn,bn);
-Yb=Yd+Yeq;
 N=sparse(connbus,1:nYl,1,bn,nYl);
+
 YLdiag=sparse(diag(YL));
 Ybuseq=Yb-N*YLdiag*N';
+
+%% in area buses are numbered consecutively before out area buses
+bsn=size(buses,1);
+Yconnf=sparse(brconnf(:,F_BUS),brconnf(:,T_BUS)-bn,Ytfconn,bn,bsn-bn);
+Yconnt=sparse(brconnt(:,T_BUS),brconnt(:,F_BUS)-bn,Yftconn,bn,bsn-bn);
+YbusExt=Yconnf+Yconnt;
 
 %% compute complex bus power injections (generation - load)
 % Sbus = makeSbus(baseMVA, bus, gen);
@@ -71,10 +85,20 @@ Qtlf=branch(:,QT);
 Vm=bus(:,VM);
 Va=bus(:,VA).*(pi/180);
 V=Vm.*cos(Va)+Vm.*sin(Va).*1j;
-Ibus=Ybuseq*V;
+
+idsOut=bn+1:bsn;
+VmOut=buses(idsOut,VM);
+VaOut=buses(idsOut,VA).*(pi/180);
+VExt=VmOut.*cos(VaOut)+VmOut.*sin(VaOut).*1j;
+
+% Ibus=Ybuseq*V;
+IExt=YbusExt*VExt;
+Ibus=Ybuseq*V+IExt;
 Sbuslf = V .* conj(Ibus);
 Vlf=V;
 vv=validMeasurement(ref,bus,branch);
-[V, converged, i] = stateEstimate(branch, Ybuseq, Yfd, Ytd, Sbuslf, Vlf, vv, pv, pq);
-extiV=sortrows([ii2e,V],1);
+[V, converged, i] = stateEstimate(branch, Ybuseq, Yfd, Ytd, Sbuslf, Vlf,IExt, vv, pv, pq,mpopt);
+[bus, gen, branch] = pfsoln_benchmark(baseMVA, bus, gen, branch, Ybuseq, Yfd, Ytd, V, ref, pv, pq,IExt);
+[bus, gen, branch] = int2ext(ii2e, bus, gen, branch);
+% extiV=sortrows([ii2e,V],1);
 end

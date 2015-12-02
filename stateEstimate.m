@@ -1,4 +1,5 @@
-function [V, converged, i] = stateEstimate(branch, Ybus, Yf, Yt, Sbus, V0, vv, pv, pq, mpopt)
+function [V, converged, i] = stateEstimate(branch, Ybus, Yf, Yt, Sbus, V0,IExt, vv, pv, pq, mpopt)
+global debug
 %STATE_EST  Solves a state estimation problem.
 %   [V, CONVERGED, I] = STATE_EST(BRANCH, YBUS, YF, YT, SBUS, ...
 %                                   V0, REF, PV, PQ, MPOPT)
@@ -20,7 +21,7 @@ function [V, converged, i] = stateEstimate(branch, Ybus, Yf, Yt, Sbus, V0, vv, p
     ANGMIN, ANGMAX, MU_ANGMIN, MU_ANGMAX] = idx_brch;
 
 %% default arguments
-if nargin < 10
+if nargin < 11
     mpopt = mpoption;
 end
 
@@ -38,7 +39,7 @@ f = branch(:, F_BUS);       %% list of "from" buses
 t = branch(:, T_BUS);       %% list of "to" buses
 
 %%-----  evaluate Hessian  -----
-[dSbus_dVm, dSbus_dVa] = dSbus_dV(Ybus, V0);
+[dSbus_dVm, dSbus_dVa] = dSbus_dV_Piec(Ybus, V0, IExt);
 [dSf_dVa, dSf_dVm, dSt_dVa, dSt_dVm, Sf, St] = dSbr_dV(branch, Yf, Yt, V0);
 H = [
     real(dSf_dVa)   real(dSf_dVm);
@@ -89,28 +90,30 @@ err = normrnd( zeros(size(sigma)), sigma );
 % load err
 % err(10) = 900 * W(10,10);     %% create a bad measurement
 
-
 % for test
-%     z = z + err;
+if ~debug
+    z = z + err;
+end
 
 %% use flat start for intial estimate
 V = ones(nb,1);
 
 %% compute estimated measurement
-Sfe = V(f) .* conj(Yf * V);
-Ste = V(t) .* conj(Yt * V);
-Sbuse = V .* conj(Ybus * V);
-z_est = [
-    real(Sfe);
-    real(Ste);
-    real(Sbuse);
-    angle(V);
-    imag(Sfe);
-    imag(Ste);
-    imag(Sbuse);
-    abs(V);
-    ];
-
+z_est=computeEstimatePiec(f,t,Yf,Yt,Ybus,V,IExt);
+% Sfe = V(f) .* conj(Yf * V);
+% Ste = V(t) .* conj(Yt * V);
+% % should consider injection from connection branches
+% Sbuse = V .* conj(Ybus * V+IExt);
+% z_est = [
+%     real(Sfe);
+%     real(Ste);
+%     real(Sbuse);
+%     angle(V);
+%     imag(Sfe);
+%     imag(Ste);
+%     imag(Sbuse);
+%     abs(V);
+%     ];
 %% measurement residual
 delz = z - z_est;
 normF = delz' * WInv * delz;
@@ -186,20 +189,20 @@ while (~converged && ibd <= max_it_bad_data)
         V(nref) = VVm .* exp(1j * VVa);
         
         %% compute estimated measurement
-        Sfe = V(f) .* conj(Yf * V);
-        Ste = V(t) .* conj(Yt * V);
-        Sbuse = V .* conj(Ybus * V);
-        z_est = [
-            real(Sfe);
-            real(Ste);
-            real(Sbuse);
-            angle(V);
-            imag(Sfe);
-            imag(Ste);
-            imag(Sbuse);
-            abs(V);
-            ];
-        
+        z_est=computeEstimatePiec(f,t,Yf,Yt,Ybus,V,IExt);
+%         Sfe = V(f) .* conj(Yf * V);
+%         Ste = V(t) .* conj(Yt * V);
+%         Sbuse = V .* conj(Ybus * V);
+%         z_est = [
+%             real(Sfe);
+%             real(Ste);
+%             real(Sbuse);
+%             angle(V);
+%             imag(Sfe);
+%             imag(Ste);
+%             imag(Sbuse);
+%             abs(V);
+%             ];        
         %% measurement residual
         delz = z - z_est;
         ddelz = delz(vv);
