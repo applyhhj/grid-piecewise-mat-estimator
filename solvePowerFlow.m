@@ -1,4 +1,4 @@
-function [MVAbase, bus, gen, branch, success,i2e] = solvePowerFlow(casedata, mpopt, fname, solvedcase)
+function [MVAbase, bus, gen, branch, success,i2e,Sbuslf] = solvePowerFlow(casedata, mpopt, fname, solvedcase)
 %RUNSE  Runs a state estimator.
 %   [BASEMVA, BUS, GEN, BRANCH, SUCCESS, ET] = ...
 %           RUNSE(CASEDATA, MPOPT, FNAME, SOLVEDCASE)
@@ -112,9 +112,9 @@ else                                %% AC formulation
     end
     
     %% update data matrices with solution
-    [bus, gen, branch] = pfsoln(baseMVA, bus, gen, branch, Ybus, Yf, Yt, V, ref, pv, pq);
-    
-    %% this is just to prevent it from printing baseMVA
-    %% when called with no output arguments
-    if nargout, MVAbase = baseMVA; end
+    [bus, gen, branch] = pfsoln_benchmark(baseMVA, bus, gen, branch, Ybus, Yf, Yt, V, ref, pv, pq);    
 end
+Sbuslf=V.*conj(Ybus*V);
+%% this is just to prevent it from printing baseMVA
+%% when called with no output arguments
+if nargout, MVAbase = baseMVA; end

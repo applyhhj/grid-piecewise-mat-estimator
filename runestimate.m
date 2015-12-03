@@ -86,19 +86,43 @@ Vm=bus(:,VM);
 Va=bus(:,VA).*(pi/180);
 V=Vm.*cos(Va)+Vm.*sin(Va).*1j;
 
+%% prepare for estimation
 idsOut=bn+1:bsn;
 VmOut=buses(idsOut,VM);
 VaOut=buses(idsOut,VA).*(pi/180);
 VExt=VmOut.*cos(VaOut)+VmOut.*sin(VaOut).*1j;
 
-% Ibus=Ybuseq*V;
 IExt=YbusExt*VExt;
 Ibus=Ybuseq*V+IExt;
 Sbuslf = V .* conj(Ibus);
 Vlf=V;
 vv=validMeasurement(ref,bus,branch);
-[V, converged, i] = stateEstimate(branch, Ybuseq, Yfd, Ytd, Sbuslf, Vlf,IExt, vv, pv, pq,mpopt);
+
+%% begin estimation
+if isempty(ref)
+    [V, converged, i] = stateEstimate(branch, Ybuseq, Yfd, Ytd, Sbuslf, Vlf,IExt, vv, pv, pq,mpopt);
+else
+    converged=1;
+end
 [bus, gen, branch] = pfsoln_benchmark(baseMVA, bus, gen, branch, Ybuseq, Yfd, Ytd, V, ref, pv, pq,IExt);
 [bus, gen, branch] = int2ext(ii2e, bus, gen, branch);
-% extiV=sortrows([ii2e,V],1);
+
+%% plot differences from load flow solution
+Ibus=Ybuseq*V+IExt;
+Sbus = V .* conj(Ibus);
+Pfe=branch(:,PF);
+Qfe=branch(:,QF);
+Pte=branch(:,PT);
+Qte=branch(:,QT);
+nbr = length(Pfe);
+if mpopt.verbose>1
+    figure;
+    subplot(3,2,1), plot(180/pi*(angle(Vlf)-angle(V)),'.'), title('Voltage Angle (deg)');
+    subplot(3,2,2), plot(abs(Vlf)-abs(V),'.'), title('Voltage Magnitude (p.u.)');
+    subplot(3,2,3), plot((1:nbr),(Pfe-Pflf),'r.',(1:nbr),(Pte-Ptlf),'b.'), title('Real Flow (MW)');
+    subplot(3,2,4), plot((1:nbr),(Qfe-Qflf),'r.',(1:nbr),(Qte-Qtlf),'b.'), title('Reactive Flow (MVAr)');
+    subplot(3,2,5), plot(baseMVA*real(Sbuslf-Sbus), '.'), title('Real Injection (MW)');
+    subplot(3,2,6), plot(baseMVA*imag(Sbuslf-Sbus), '.'), title('Reactive Injection (MVAr)');
+end
+
 end

@@ -93,6 +93,7 @@ err = normrnd( zeros(size(sigma)), sigma );
 % for test
 if ~debug
     z = z + err;
+    fprintf('%10.4f',max(abs(err)));
 end
 
 %% use flat start for intial estimate
