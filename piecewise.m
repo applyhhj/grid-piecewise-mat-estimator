@@ -14,11 +14,12 @@ function [zone_bus_map,zone_gen_map,zone_branch_map, ...
     ANGMIN, ANGMAX, MU_ANGMIN, MU_ANGMAX] = idx_brch;
 
 ref=getBusType(bus, gen);
+refZoneNum=0;
 
 zref=bus(ref,ZONE);
-bus(ref,ZONE)=-1;
+bus(ref,ZONE)=refZoneNum;
 aref=bus(ref,BUS_AREA);
-bus(ref,BUS_AREA)=-1;
+bus(ref,BUS_AREA)=refZoneNum;
 
 zones=sort(unique(bus(:,ZONE)));
 areas=sort(unique(bus(:,BUS_AREA)));
