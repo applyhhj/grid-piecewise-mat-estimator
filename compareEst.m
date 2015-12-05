@@ -22,6 +22,7 @@ end
 busPiec=[];
 genPiec=[];
 branchPiec=[];
+brconnPiec=[];
 convergedoPiec=[];
 zones=keys(zone_bus_map);
 
@@ -29,7 +30,7 @@ for k=1:size(zones,2)
     zone=cell2mat(zones(k));
     zoneBuses(k,:)=[zone,size(zone_bus_map(zone),1)];
     if debug, fprintf('%4d:%4d',zoneBuses(k,:)); end
-    [busi,geni,branchi, convergedi]=runEstimate(baseMVA,zone_bus_map(zone),...
+    [busi,geni,branchi,brconni, convergedi]=runEstimate(baseMVA,zone_bus_map(zone),...
         zone_gen_map(zone),zone_branch_map(zone),...
         zone_branch_connf_map(zone),zone_branch_connt_map(zone),...
         connbrf_bus_out_map(zone),connbrt_bus_out_map(zone),mpopt);
@@ -37,8 +38,15 @@ for k=1:size(zones,2)
     busPiec=[busPiec;busi];
     genPiec=[genPiec;geni];
     branchPiec=[branchPiec;branchi];
+    brconnPiec=[brconnPiec;brconni];
     convergedoPiec=[convergedoPiec,convergedi];
 end
+[r,c]=size(brconnPiec);
+brconnPiec=sortrows(brconnPiec,c);
+% average sf st
+brconnPiec=(brconnPiec(1:2:r,:)+brconnPiec(2:2:r,:))/2;
+branchPiec=[branchPiec;brconnPiec];
+branchPiec=branchPiec(:,1:c-1);
 
 [bus, gen, branch] = int2ext(i2e, bus, gen, branch);
 [busPiec, genPiec, branchPiec] = int2ext(i2e, busPiec, genPiec, branchPiec);
@@ -53,11 +61,13 @@ converged={converged};
 
 busPiecSort=sortrows(busPiec,1:size(busPiec,2));
 genPiecSort=sortrows(genPiec,1:size(genPiec,2));
+branchPiecSort=sortrows(branchPiec,1:size(branchPiec,2));
 busSort=sortrows(bus,1:size(bus,2));
 genSort=sortrows(gen,1:size(gen,2));
+branchSort=sortrows(branch,1:size(branch,2));
 % busBenchSort=sortrows(busBench,1:size(busBench,2));
 % genBenchSort=sortrows(genBench,1:size(genBench,2));
-outdiff=[{busSort-busPiecSort},{genSort-genPiecSort},converged,success];
+outdiff=[{busSort-busPiecSort},{genSort-genPiecSort},{branchSort-branchPiecSort},converged,success];
 % ids=real(i2e(extiV(:,1)));
 % extiV(:,1)=ids;
 % extiV=sortrows(extiV,1);

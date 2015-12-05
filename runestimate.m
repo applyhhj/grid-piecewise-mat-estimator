@@ -1,4 +1,4 @@
-function [bus, gen, branch,converged]=runEstimate(baseMVA,bus,gen,branch,...
+function [bus, gen, branch,brconn,converged]=runEstimate(baseMVA,bus,gen,branch,...
     brconnf,brconnt,busbrconnfout,busbrconntout,mpopt)
 
 %% define named indices into bus, gen, branch matrices
@@ -49,8 +49,8 @@ gbus = gen(on, GEN_BUS);                %% what buses are they at?
 
 %% build admittance matrices
 [Yd, Yfd, Ytd] = getYMatrix(baseMVA, bus, branch);
-[~, ~, ~,Yffconn,~,~,Ytfconn] = getYMatrix(baseMVA, [], brconnf);
-[~, ~, ~,~,Yttconn,Yftconn,~] = getYMatrix(baseMVA, [], brconnt);
+[~, Yfconnf, Ytconnf,Yffconn,~,~,Ytfconn] = getYMatrix(baseMVA, buses, brconnf);
+[~, Yfconnt, Ytconnt,~,Yttconn,Yftconn,~] = getYMatrix(baseMVA, buses, brconnt);
 nbrcf=size(brconnf,1);
 Cbrcfbus=sparse(1:nbrcf,brconnf(:,F_BUS),1,nbrcf,bn);
 nbrct=size(brconnt,1);
@@ -104,25 +104,32 @@ if isempty(ref)
 else
     converged=1;
 end
+
+%% update connection branches
+brconnf=updateBranchPf(baseMVA,brconnf,Yfconnf,Ytconnf,[V;VExt]);
+brconnt=updateBranchPf(baseMVA,brconnt,Yfconnt,Ytconnt,[V;VExt]);
+brconn=int2extBr(ii2efull,[brconnf;brconnt]);
+
+%% update other states
 [bus, gen, branch] = pfsoln_benchmark(baseMVA, bus, gen, branch, Ybuseq, Yfd, Ytd, V, ref, pv, pq,IExt);
 [bus, gen, branch] = int2ext(ii2e, bus, gen, branch);
 
 %% plot differences from load flow solution
-Ibus=Ybuseq*V+IExt;
-Sbus = V .* conj(Ibus);
-Pfe=branch(:,PF);
-Qfe=branch(:,QF);
-Pte=branch(:,PT);
-Qte=branch(:,QT);
-nbr = length(Pfe);
-if mpopt.verbose>1
-    figure;
-    subplot(3,2,1), plot(180/pi*(angle(Vlf)-angle(V)),'.'), title('Voltage Angle (deg)');
-    subplot(3,2,2), plot(abs(Vlf)-abs(V),'.'), title('Voltage Magnitude (p.u.)');
-    subplot(3,2,3), plot((1:nbr),(Pfe-Pflf),'r.',(1:nbr),(Pte-Ptlf),'b.'), title('Real Flow (MW)');
-    subplot(3,2,4), plot((1:nbr),(Qfe-Qflf),'r.',(1:nbr),(Qte-Qtlf),'b.'), title('Reactive Flow (MVAr)');
-    subplot(3,2,5), plot(baseMVA*real(Sbuslf-Sbus), '.'), title('Real Injection (MW)');
-    subplot(3,2,6), plot(baseMVA*imag(Sbuslf-Sbus), '.'), title('Reactive Injection (MVAr)');
-end
+% Ibus=Ybuseq*V+IExt;
+% Sbus = V .* conj(Ibus);
+% Pfe=branch(:,PF);
+% Qfe=branch(:,QF);
+% Pte=branch(:,PT);
+% Qte=branch(:,QT);
+% nbr = length(Pfe);
+% if mpopt.verbose>1
+%     figure;
+%     subplot(3,2,1), plot(180/pi*(angle(Vlf)-angle(V)),'.'), title('Voltage Angle (deg)');
+%     subplot(3,2,2), plot(abs(Vlf)-abs(V),'.'), title('Voltage Magnitude (p.u.)');
+%     subplot(3,2,3), plot((1:nbr),(Pfe-Pflf),'r.',(1:nbr),(Pte-Ptlf),'b.'), title('Real Flow (MW)');
+%     subplot(3,2,4), plot((1:nbr),(Qfe-Qflf),'r.',(1:nbr),(Qte-Qtlf),'b.'), title('Reactive Flow (MVAr)');
+%     subplot(3,2,5), plot(baseMVA*real(Sbuslf-Sbus), '.'), title('Real Injection (MW)');
+%     subplot(3,2,6), plot(baseMVA*imag(Sbuslf-Sbus), '.'), title('Reactive Injection (MVAr)');
+% end
 
 end
