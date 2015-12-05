@@ -21,9 +21,8 @@ if debug==3
 end
 
 warning('off');
-fprintf('Max output difference.\n');
 for k=1:size(cases,2)   
-    fprintf('%s\n',cases{k});
+    fprintf('Processing case %15s\n',cases{k});
     [outdiff,zoneBuses]=compareEst(cases{k},mpopt);
     res(k).case=cases{k};
     res(k).maxBusDiff=max(max(abs(outdiff{1})));
@@ -32,15 +31,10 @@ for k=1:size(cases,2)
     res(k).EstConvergence=outdiff{4};
     res(k).PFSuccess=outdiff{end};
     res(k).zoneBuses=zoneBuses;
-    fprintf('\nBus %10.6f',res(k).maxBusDiff);
-    fprintf('\tGen %10.6f',res(k).maxGenDiff);
-    fprintf('\tBranch %10.6f',res(k).maxBranchDiff);
-    color=1;
-    if ~res(k).EstConvergence,color=2;end
-    fprintf(color,'\tEstConverged %5d',res(k).EstConvergence);
-    color=1;
-    if ~res(k).PFSuccess,color=2;end
-    fprintf(color,'\tPFSuccess %5d\n\n',res(k).PFSuccess);
 end
+
+printRes(res);
+fprintf('Saving result!\n');
 save('result','res');
 warning('on');
+fprintf('Done!\n')
