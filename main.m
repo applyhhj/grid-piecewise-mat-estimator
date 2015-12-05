@@ -14,6 +14,7 @@ if debug==2
 end
 if debug==3
     matpath='F:\projects\matpower5.1';
+%     matpath='E:\matpower5.1';
     %                out of mem err     'case9241pegase',
     exclude_files={'info','format'};
     cases=getAllCases(matpath,exclude_files);
