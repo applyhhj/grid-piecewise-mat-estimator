@@ -14,7 +14,7 @@ function [zone_bus_map,zone_gen_map,zone_branch_map, ...
     ANGMIN, ANGMAX, MU_ANGMIN, MU_ANGMAX] = idx_brch;
 
 ref=getBusType(bus, gen);
-refZoneNum=0;
+refZoneNum=-1;
 
 zref=bus(ref,ZONE);
 bus(ref,ZONE)=refZoneNum;

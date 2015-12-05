@@ -1,4 +1,4 @@
-function [outdiff]=compareEst(casedata,mpopt)
+function [outdiff,zoneBuses]=compareEst(casedata,mpopt)
 global debug
 % [busBench, genBench, branchBench, success]=runBench(casedata,mpopt);
 % clearvars -except mpopt casedata busBench genBench branchBench
@@ -6,11 +6,12 @@ global debug
 [PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM, ...
     VA, BASE_KV, ZONE, VMAX, VMIN, LAM_P, LAM_Q, MU_VMAX, MU_VMIN] = idx_bus;
 
-if debug, fprintf('%s','Number of buses in each zone->  '); end
+if debug, fprintf('%s\t','Number of buses in each zone->'); end
 [baseMVA, bus, gen, branch, success,i2e,Sbuslf] = solvePowerFlow(casedata,mpopt);
 
 if ~success
     outdiff=[{0},{0},{0},{0}];
+    zoneBuses=[];
     return;
 end
 
@@ -26,7 +27,8 @@ zones=keys(zone_bus_map);
 
 for k=1:size(zones,2)
     zone=cell2mat(zones(k));
-    if debug, fprintf('%4d:%4d',zone,size(zone_bus_map(zone),1)); end
+    zoneBuses(k,:)=[zone,size(zone_bus_map(zone),1)];
+    if debug, fprintf('%4d:%4d',zoneBuses(k,:)); end
     [busi,geni,branchi, convergedi]=runEstimate(baseMVA,zone_bus_map(zone),...
         zone_gen_map(zone),zone_branch_map(zone),...
         zone_branch_connf_map(zone),zone_branch_connt_map(zone),...
