@@ -1,5 +1,4 @@
-function [bus, gen, branch,brconn,converged]=runEstimate(baseMVA,bus,gen,branch,...
-    brconnf,brconnt,busbrconnfout,busbrconntout,mpopt)
+function [bus, gen, branch,brconn,converged]=runEstimateStruct(baseMVA,zone,mpopt)
 
 %% define named indices into bus, gen, branch matrices
 [PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM, ...
@@ -11,14 +10,19 @@ function [bus, gen, branch,brconn,converged]=runEstimate(baseMVA,bus,gen,branch,
     MU_PMAX, MU_PMIN, MU_QMAX, MU_QMIN, PC1, PC2, QC1MIN, QC1MAX, ...
     QC2MIN, QC2MAX, RAMP_AGC, RAMP_10, RAMP_30, RAMP_Q, APF] = idx_gen;
 
+%% default arguments
+if nargin < 3
+    mpopt = mpoption;
+end
+
 %% convert to matrix
-bus=cell2mat(bus);
-gen=cell2mat(gen);
-branch=cell2mat(branch);
-brconnf=cell2mat(brconnf);
-brconnt=cell2mat(brconnt);
-busbrconnfout=cell2mat(busbrconnfout);
-busbrconntout=cell2mat(busbrconntout);
+bus=zone.bus;
+gen=zone.gen;
+branch=zone.branch;
+brconnf=zone.brconnf;
+brconnt=zone.brconnt;
+busbrconnfout=zone.brconnf_out_bus;
+busbrconntout=zone.brconnt_out_bus;
 
 %% reoder bus number
 busbrconnout=[busbrconnfout;busbrconntout];

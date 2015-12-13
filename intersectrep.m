@@ -1,5 +1,5 @@
 function [c,idxa]=intersectRep(a,b)
-%% intersect with repetitions
+%% vector intersection with repetitions
 if isempty(a) || isempty(b)
    c=[];
    idxa=[];

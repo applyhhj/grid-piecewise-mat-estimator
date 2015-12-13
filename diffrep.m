@@ -1,5 +1,5 @@
 function [c,ia]=diffRep(a,b)
-
+% vector difference
 if isempty(b)
     ia=(1:max(size(a,1)))';
     if size(a,1)<size(a,2)

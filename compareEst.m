@@ -6,39 +6,60 @@ global debug
 [PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM, ...
     VA, BASE_KV, ZONE, VMAX, VMIN, LAM_P, LAM_Q, MU_VMAX, MU_VMIN] = idx_bus;
 
+outdiff=[{0},{0},{0},{0}];
+zoneBuses=[];
+
+if debug==1
+    [~, bus, ~, ~] = loadcase(casedata);
+    if size(bus,1)>300
+        return;
+    end
+end
+
 [baseMVA, bus, gen, branch, success,i2e,Sbuslf] = solvePowerFlow(casedata,mpopt);
 
 if ~success
-    outdiff=[{0},{0},{0},{0}];
-    zoneBuses=[];
     return;
 end
 
+% bus=reassignZone(bus);
+
 [zone_bus_map,zone_gen_map,zone_branch_map, ...
     zone_branch_connf_map,zone_branch_connt_map,...
-    connbrf_bus_out_map,connbrt_bus_out_map]=piecewise(bus,gen,branch);
+    connbrf_bus_out_map,connbrt_bus_out_map,zoneStruct]=piecewise(bus,gen,branch);
 
 busPiec=[];
 genPiec=[];
 branchPiec=[];
 brconnPiec=[];
 convergedoPiec=[];
-zones=keys(zone_bus_map);
 
-for k=1:size(zones,2)
-    zone=cell2mat(zones(k));
-    zoneBuses(k,:)=[zone,size(zone_bus_map(zone),1)];
-    [busi,geni,branchi,brconni, convergedi]=runEstimate(baseMVA,zone_bus_map(zone),...
-        zone_gen_map(zone),zone_branch_map(zone),...
-        zone_branch_connf_map(zone),zone_branch_connt_map(zone),...
-        connbrf_bus_out_map(zone),connbrt_bus_out_map(zone),mpopt);
-    
+for k=1:size(zoneStruct,2)
+    zoneBuses(k,:)=[zoneStruct(k).no,size(zoneStruct(k).bus,1)];
+    [busi,geni,branchi,brconni, convergedi]=runEstimateStruct(baseMVA,zoneStruct(k),mpopt);    
     busPiec=[busPiec;busi];
     genPiec=[genPiec;geni];
     branchPiec=[branchPiec;branchi];
     brconnPiec=[brconnPiec;brconni];
     convergedoPiec=[convergedoPiec,convergedi];
 end
+% 
+% zones=keys(zone_bus_map);
+% for k=1:size(zones,2)
+%     zone=cell2mat(zones(k));
+%     zoneBuses(k,:)=[zone,size(zone_bus_map(zone),1)];
+%     [busi,geni,branchi,brconni, convergedi]=runEstimate(baseMVA,zone_bus_map(zone),...
+%         zone_gen_map(zone),zone_branch_map(zone),...
+%         zone_branch_connf_map(zone),zone_branch_connt_map(zone),...
+%         connbrf_bus_out_map(zone),connbrt_bus_out_map(zone),mpopt);
+%     
+%     busPiec=[busPiec;busi];
+%     genPiec=[genPiec;geni];
+%     branchPiec=[branchPiec;branchi];
+%     brconnPiec=[brconnPiec;brconni];
+%     convergedoPiec=[convergedoPiec,convergedi];
+% end
+
 [r,c]=size(brconnPiec);
 brconnPiec=sortrows(brconnPiec,c);
 % average sf st

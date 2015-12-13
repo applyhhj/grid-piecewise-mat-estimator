@@ -1,6 +1,6 @@
 function [zone_bus_map,zone_gen_map,zone_branch_map, ...
     zone_branch_connf_map,zone_branch_connt_map,...
-    connbrf_bus_out_map,connbrt_bus_out_map]=piecewise(bus,gen,branch)
+    connbrf_bus_out_map,connbrt_bus_out_map,zone]=piecewise(bus,gen,branch)
 
 [PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM, ...
     VA, BASE_KV, ZONE, VMAX, VMIN, LAM_P, LAM_Q, MU_VMAX, MU_VMIN] = idx_bus;
@@ -15,7 +15,6 @@ function [zone_bus_map,zone_gen_map,zone_branch_map, ...
 
 ref=getBusType(bus, gen);
 refZoneNum=-1;
-
 zref=bus(ref,ZONE);
 bus(ref,ZONE)=refZoneNum;
 aref=bus(ref,BUS_AREA);
@@ -23,7 +22,6 @@ bus(ref,BUS_AREA)=refZoneNum;
 
 zones=sort(unique(bus(:,ZONE)));
 areas=sort(unique(bus(:,BUS_AREA)));
-
 if size(zones,1)>size(areas,1)
     idx=ZONE;
 else
@@ -32,7 +30,6 @@ else
 end
 
 zn=size(zones,1);
-
 buses=cell(1,zn);
 gens=cell(1,zn);
 branches=cell(1,zn);
@@ -44,36 +41,46 @@ brids=(1:size(branch,1))';
 branch=[branch brids];
 
 for k=1:zn
+    zone(k).no=zones(k);
     %     piecewise buses
     zonebuses=bus(bus(:,idx)==zones(k),:);  
     buses(k)={zonebuses};
+    zone(k).bus=zonebuses;
     
     %     piecewise gens
     [~,igen]=intersectRep(gen(:,GEN_BUS),zonebuses(:,BUS_I));    
     zonegens=gen(igen,:);    
     gens(k)={zonegens};
+    zone(k).gen=zonegens;
     
     %     piecewise branches
     [~,ibrf]=intersectRep(branch(:,F_BUS),zonebuses(:,BUS_I));    
     [~,ibrt]=intersectRep(branch(:,T_BUS),zonebuses(:,BUS_I));    
     ibrzone=intersectRep(ibrf,ibrt);        
     branches(k)={branch(ibrzone,:)};
+    zone(k).branch=branch(ibrzone,:);
     
     %   connection branches
     connbrf(k)={branch(diffRep(ibrf,ibrzone),:)};    
     connbrt(k)={branch(diffRep(ibrt,ibrzone),:)};
+    zone(k).brconnf=branch(diffRep(ibrf,ibrzone),:);
+    zone(k).brconnt=branch(diffRep(ibrt,ibrzone),:);
 
     %   buses of connection branches that are out of the zone
     %% ibus may have duplicated elements
     [~,ibus]=intersectRep(bus(:,BUS_I),branch(diffRep(ibrf,ibrzone),T_BUS));    
     connbrf_bus_out(k)={bus(ibus,:)};    
+    zone(k).brconnf_out_bus=bus(ibus,:);
     [~,ibus]=intersectRep(bus(:,BUS_I),branch(diffRep(ibrt,ibrzone),F_BUS));    
     connbrt_bus_out(k)={bus(ibus,:)};    
+    zone(k).brconnt_out_bus=bus(ibus,:);
 end
+
 busref=cell2mat(buses(1));
 busref(1,ZONE )=zref;
 busref(1,BUS_AREA)=aref;
 buses(1)={busref};
+zone(1).bus(1,[ZONE BUS_AREA])=[zref,aref];
 
 zone_bus_map=containers.Map(zones,buses);
 zone_gen_map=containers.Map(zones,gens);
