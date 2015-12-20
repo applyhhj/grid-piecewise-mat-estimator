@@ -58,8 +58,10 @@ gbus = gen(on, GEN_BUS);                %% what buses are they at?
 
 %% build admittance matrices
 [Yd, Yfd, Ytd] = getYMatrix(baseMVA, bus, branch);
-[~, Yfconnf, Ytconnf,Yffconn,~,~,Ytfconn] = getYMatrix(baseMVA, buses, brconnf);
-[~, Yfconnt, Ytconnt,~,Yttconn,Yftconn,~] = getYMatrix(baseMVA, buses, brconnt);
+% [~, Yfconnf, Ytconnf,Yffconn,~,~,Ytfconn] = getYMatrix(baseMVA, buses, brconnf);
+% [~, Yfconnt, Ytconnt,~,Yttconn,Yftconn,~] = getYMatrix(baseMVA, buses, brconnt);
+[~, Yfconnf, Ytconnf,Yffconn,~,Yftconn,~] = getYMatrix(baseMVA, buses, brconnf);
+[~, Yfconnt, Ytconnt,~,Yttconn,~,Ytfconn] = getYMatrix(baseMVA, buses, brconnt);
 nbrcf=size(brconnf,1);
 Cbrcfbus=sparse(1:nbrcf,brconnf(:,F_BUS),1,nbrcf,bn);
 nbrct=size(brconnt,1);
@@ -79,8 +81,10 @@ Ybuseq=Yb-N*YLdiag*N';
 
 %% in area buses are numbered consecutively before out area buses
 bsn=size(buses,1);
-Yconnf=sparse(brconnf(:,F_BUS),brconnf(:,T_BUS)-bn,Ytfconn,bn,bsn-bn);
-Yconnt=sparse(brconnt(:,T_BUS),brconnt(:,F_BUS)-bn,Yftconn,bn,bsn-bn);
+% Yconnf=sparse(brconnf(:,F_BUS),brconnf(:,T_BUS)-bn,Ytfconn,bn,bsn-bn);
+% Yconnt=sparse(brconnt(:,T_BUS),brconnt(:,F_BUS)-bn,Yftconn,bn,bsn-bn);
+Yconnf=sparse(brconnf(:,F_BUS),brconnf(:,T_BUS)-bn,Yftconn,bn,bsn-bn);
+Yconnt=sparse(brconnt(:,T_BUS),brconnt(:,F_BUS)-bn,Ytfconn,bn,bsn-bn);
 YbusExt=Yconnf+Yconnt;
 
 %% compute complex bus power injections (generation - load)

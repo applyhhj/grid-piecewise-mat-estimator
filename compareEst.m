@@ -1,5 +1,5 @@
-function [outdiff,zoneBuses]=compareEst(casedata,mpopt)
-global debug
+function [outdiff,zoneBuses]=compareEst(casedata,N,mpopt)
+global debug reassign
 % [busBench, genBench, branchBench, success]=runBench(casedata,mpopt);
 % clearvars -except mpopt casedata busBench genBench branchBench
 
@@ -22,7 +22,18 @@ if ~success
     return;
 end
 
-% bus=reassignZone(bus);
+if reassign
+    bus=reassignZone(bus,gen,branch,N);
+else
+    [ref, ~, ~] = getBusType(bus, gen);
+    bus(ref,ZONE)=-1;
+    bus(ref,BUS_AREA)=-1;
+    zones=sort(unique(bus(:,ZONE)));
+    areas=sort(unique(bus(:,BUS_AREA)));
+    if size(zones,1)<size(areas,1)
+        bus(:,ZONE)=bus(:,BUS_AREA);       
+    end
+end
 
 [zone_bus_map,zone_gen_map,zone_branch_map, ...
     zone_branch_connf_map,zone_branch_connt_map,...
@@ -36,14 +47,14 @@ convergedoPiec=[];
 
 for k=1:size(zoneStruct,2)
     zoneBuses(k,:)=[zoneStruct(k).no,size(zoneStruct(k).bus,1)];
-    [busi,geni,branchi,brconni, convergedi]=runEstimateStruct(baseMVA,zoneStruct(k),mpopt);    
+    [busi,geni,branchi,brconni, convergedi]=runEstimateStruct(baseMVA,zoneStruct(k),mpopt);
     busPiec=[busPiec;busi];
     genPiec=[genPiec;geni];
     branchPiec=[branchPiec;branchi];
     brconnPiec=[brconnPiec;brconni];
     convergedoPiec=[convergedoPiec,convergedi];
 end
-% 
+%
 % zones=keys(zone_bus_map);
 % for k=1:size(zones,2)
 %     zone=cell2mat(zones(k));
@@ -52,7 +63,7 @@ end
 %         zone_gen_map(zone),zone_branch_map(zone),...
 %         zone_branch_connf_map(zone),zone_branch_connt_map(zone),...
 %         connbrf_bus_out_map(zone),connbrt_bus_out_map(zone),mpopt);
-%     
+%
 %     busPiec=[busPiec;busi];
 %     genPiec=[genPiec;geni];
 %     branchPiec=[branchPiec;branchi];

@@ -1,4 +1,4 @@
-function [ bus ] = reassignZone( bus,ref,C,N )
+function [ bus ] = reassignZone( bus,gen,branch,N )
 %% define named indices into bus, branch matrices
 [PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM, ...
     VA, BASE_KV, ZONE, VMAX, VMIN, LAM_P, LAM_Q, MU_VMAX, MU_VMIN] = idx_bus;
@@ -12,38 +12,63 @@ if any(bus(:, BUS_I) ~= (1:bn)')
     error('Buses must appear in order by bus number')
 end
 
-zone=ones(bn,1);
-zone(ref)=0;
 %% split system
-% normally we should not split the system when the number of buses is no
+% normally we should not split the system when the number of buses is not
 % large, however due to the bug of the original estimator we have to split
 % the reference bus so that the estimator can get more accurate result.
+[ref, ~, ~] = getBusType(bus, gen);
 if bn<N
-    bus=[bus zone];
+    zone=ones(bn,1);
+    zone(ref)=0;
+    bus(:,ZONE)=zone;
     return;
 end
 
 %% compute connection matrix
 % convert to symmetric matrix
+C=sparse(branch(:,F_BUS),branch(:,T_BUS),1,bn,bn);
 C=C+C';
-Ctmp=C;
 
-%% check the rest system after split the reference bus
-i2e=setdiff(bus(:,BUS_I),ref);
-Ctmp(ref,:)=[];
-Ctmp(:,ref)=[];
-subZones=BFSDivideGraph(Ctmp,i2e);
-[resultSet,zIdsToSplit]=mergeZones(subZones,N);
+%% get buses of each zone
+% use 0 for reference bus
+zoneNums=bus(:,ZONE);
+maxZoneIdx=max(bus(:,ZONE));
+zoneRef.num=zoneNums(ref);
+zoneRef.buses=bus(bus(:,ZONE)==zoneRef.num,BUS_I);
 
-%% split rest subsystems
-for k=1:size(zIdsToSplit,1)
-    zoneToSplit=subZones(zIdsToSplit(k)).graph;
-    resultSetTmp=splitZone(zoneToSplit,C,N);    
+% check the rest of the zone that contains ref bus is connected, if not
+% reassign the zone number
+if size(zoneRef.buses,1)>1
+    i2e=setdiff(zoneRef.buses,ref);
+    Ctmp=C(i2e,i2e);
+    subZones=BFSDivideGraph(Ctmp,i2e);
+    if size(subZones,2)>1
+        for k=2:size(subZones,2)
+            zoneNums(subZones(k).graph)=maxZoneIdx+k-1;
+        end
+    end
 end
-resultSet=[resultSet resultSetTmp];
-for k=1:size(resultSet,2)
-   zone(resultSet(k).graph)=k; 
+
+zoneNums(ref)=-1;
+bus(ref,ZONE)=-1;
+zoneIds=sort(unique(zoneNums));
+for k=1:size(zoneIds,1)
+    zones(k).num=zoneIds(k);
+    zones(k).buses=bus(bus(:,ZONE)==zones(k).num,BUS_I);
 end
-bus=[bus zone];
+
+%% split rest systems after splitting the reference bus
+zones=splitLargeZone(zones,C,N,maxZoneIdx);
+zoneRef=zones(1);
+% do not merge reference zone
+[zones]=mergeZones(zones(2:end),branch,N);
+zones=[zoneRef;zones];
+
+%% reassign zone number
+for k=1:size(zones,1)
+    zoneNums(zones(k).buses)=k-1;
+end
+bus(:,ZONE)=zoneNums;
+
 end
 

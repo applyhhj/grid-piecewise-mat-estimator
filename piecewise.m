@@ -13,21 +13,7 @@ function [zone_bus_map,zone_gen_map,zone_branch_map, ...
     TAP, SHIFT, BR_STATUS, PF, QF, PT, QT, MU_SF, MU_ST, ...
     ANGMIN, ANGMAX, MU_ANGMIN, MU_ANGMAX] = idx_brch;
 
-ref=getBusType(bus, gen);
-refZoneNum=-1;
-zref=bus(ref,ZONE);
-bus(ref,ZONE)=refZoneNum;
-aref=bus(ref,BUS_AREA);
-bus(ref,BUS_AREA)=refZoneNum;
-
 zones=sort(unique(bus(:,ZONE)));
-areas=sort(unique(bus(:,BUS_AREA)));
-if size(zones,1)>size(areas,1)
-    idx=ZONE;
-else
-    idx=BUS_AREA;
-    zones=areas;
-end
 
 zn=size(zones,1);
 buses=cell(1,zn);
@@ -43,7 +29,7 @@ branch=[branch brids];
 for k=1:zn
     zone(k).no=zones(k);
     %     piecewise buses
-    zonebuses=bus(bus(:,idx)==zones(k),:);  
+    zonebuses=bus(bus(:,ZONE)==zones(k),:);  
     buses(k)={zonebuses};
     zone(k).bus=zonebuses;
     
@@ -75,12 +61,6 @@ for k=1:zn
     connbrt_bus_out(k)={bus(ibus,:)};    
     zone(k).brconnt_out_bus=bus(ibus,:);
 end
-
-busref=cell2mat(buses(1));
-busref(1,ZONE )=zref;
-busref(1,BUS_AREA)=aref;
-buses(1)={busref};
-zone(1).bus(1,[ZONE BUS_AREA])=[zref,aref];
 
 zone_bus_map=containers.Map(zones,buses);
 zone_gen_map=containers.Map(zones,gens);
