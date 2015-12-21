@@ -11,7 +11,7 @@ exclude_files={'info','format'};
 cases=getAllCases(matpath,exclude_files);
 
 % case14Test has disconnected networks in a zone
-casestst={'case1354pegase'};
+casestst={'case2746wp'};
 mpopt = mpoption('verbose',0);
 N=300;
 

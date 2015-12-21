@@ -23,8 +23,6 @@ connbrf=cell(1,zn);
 connbrt=cell(1,zn);
 connbrf_bus_out=cell(1,zn);
 connbrt_bus_out=cell(1,zn);
-brids=(1:size(branch,1))';
-branch=[branch brids];
 
 for k=1:zn
     zone(k).no=zones(k);
