@@ -1,5 +1,5 @@
 *.asv
-test_*
+test*
 
 # Windows image file caches
 Thumbs.db
