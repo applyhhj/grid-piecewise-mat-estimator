@@ -64,7 +64,9 @@ end
 
 [r,c]=size(brconnPiec);
 brconnPiec=sortrows(brconnPiec,c);
-% average sf st, sf st are computed twice
+% each connection branch is computed twice and after sorting branches with the 
+% same id will be adjcent to each other so we only need to add the even
+% rows with the odd rows of connection branch and then divide 2.
 brconnPiec=(brconnPiec(1:2:r,:)+brconnPiec(2:2:r,:))/2;
 branchPiec=[branchPiec;brconnPiec];
 

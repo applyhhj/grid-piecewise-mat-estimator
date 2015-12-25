@@ -1,4 +1,4 @@
-function [ bus ] = reassignZone( bus,gen,branch,N )
+function [ bus0 ] = reassignZone( bus,gen,branch,N )
 %% define named indices into bus, branch matrices
 [PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM, ...
     VA, BASE_KV, ZONE, VMAX, VMIN, LAM_P, LAM_Q, MU_VMAX, MU_VMIN] = idx_bus;
@@ -8,8 +8,9 @@ function [ bus ] = reassignZone( bus,gen,branch,N )
 
 %% bus numbers should be converted to internal consecutive numbers
 bn=size(bus,1);
+bus0=bus;
 if any(bus(:, BUS_I) ~= (1:bn)')
-    error('Buses must appear in order by bus number')
+    [~, bus, gen, branch] = ext2int(bus, gen, branch);
 end
 
 %% split system
@@ -20,7 +21,7 @@ end
 if bn<N
     zone=ones(bn,1);
     zone(ref)=0;
-    bus(:,ZONE)=zone;
+    bus0(:,ZONE)=zone;
     return;
 end
 
@@ -68,7 +69,7 @@ zones=[zoneRef;zones];
 for k=1:size(zones,1)
     zoneNums(zones(k).buses)=k-1;
 end
-bus(:,ZONE)=zoneNums;
+bus0(:,ZONE)=zoneNums;
 
 end
 

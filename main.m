@@ -19,7 +19,7 @@ N=300;
 % 1 test cases with bus number less than 300 no err,
 % 2 test dedicated case no err, 
 % 3 test all cases no err
-debug=3;
+debug=2;
 reassign=1;
 
 if debug==2
